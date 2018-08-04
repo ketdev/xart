@@ -1,0 +1,65 @@
+module sample
+
+// import os
+// import math
+
+// Declarations
+Green	: 0xF
+Blue	: 2.0
+Red		: 3
+
+// : is eager, [] is lazy (parametrized)
+// F is constant, f is variable
+
+Foo [] {		// Function (parametrized data)
+	var: 1
+	var2: var + Red
+}
+
+Entry [args..] {
+	ret 0
+}
+
+// Foo [] {
+// 	ret A	// <- ret only if parametrized transformation?
+// }
+// 
+// Foo == Foo.x
+// 
+// MyVal 3
+
+
+////////////////////////////
+
+// Component {}
+// Entity : Components
+// System [Components] {}
+
+
+// Component - simple, logic-less data-containing struct
+// Tag - simple logic-less and data-less truct
+point { # component
+	x : int
+	y : int
+}
+dead {} # tag
+
+// Signature - compiletime mixed list of required components and tags
+-> in language, part of system signature
+
+KillEnemy [point, dead]{ # system
+	...
+}
+
+// ComponentList - compiletime list of component types
+// TagList - compiletime list of tag types
+// SignatureList - compiletime list of signature types
+
+// Entity - Simple struct "pointing" to the correct omponent data.
+//			Contains a bitset to keep track of available components and tags, 
+//			and a flag to check if the entity is alive
+// Manager - Context class. Will contain entities, components signatures, metadata.
+//			It will deal with entity/component creation/removal, with entity iteration and much more.
+// Handle - Layer of indirection betweent the entities and the user.
+//			Handles will be used to keep track and access an entity.
+//			It will be possible to check if the entity is still valid through an existing handle.

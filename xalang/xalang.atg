@@ -1,0 +1,127 @@
+// [IMPORTS]
+#include <wchar.h>
+#include <string>
+#include <iostream>
+#include <locale>
+#include <codecvt>
+using namespace std;
+
+#include "Code.h"
+
+/*--------------------------------------------------------------------------*/
+COMPILER Xalang
+
+    // PARSER fields and methods
+    
+    static inline std::wstring s2ws(const std::string& str) {
+        using convert_typeX = std::codecvt_utf8<wchar_t>;
+        std::wstring_convert<convert_typeX, wchar_t> converterX;
+        return converterX.from_bytes(str);
+    }
+    static inline std::string ws2s(const std::wstring& wstr) {
+        using convert_typeX = std::codecvt_utf8<wchar_t>;
+        std::wstring_convert<convert_typeX, wchar_t> converterX;
+        return converterX.to_bytes(wstr);
+    }
+
+	// Code generation
+
+	Module code;
+
+
+/*--------------------------------------------------------------------------*/
+CHARACTERS
+
+	tab                = '\u0009'. /*  9 = tabulator */
+	lf                 = '\u000a'. /* 10 = line feed */
+	cr                 = '\u000d'. /* 13 = carriage return */
+	ws                 = ' ' + tab + '\u000b' + '\u000c'. /* Any character with Unicode class Zs */
+
+	letter             = 'A' .. 'Z' + 'a' .. 'z'.
+	digit              = '0' .. '9'.
+	hex                = digit + 'A' .. 'F' + 'a' .. 'f'.
+	oct                = '0' .. '7'.
+	bin                = '0' .. '1'.
+	char                = ANY - '"' - '"'.
+
+TOKENS
+
+  ident               = letter { letter | digit | '_' }.
+  integer             = ['-'] digit {digit} | ("0x"|"0X") hex {hex} | ("0o"|"0O") oct {oct} | ("0b"|"0B") bin {bin}.
+  real                = ['-'] digit {digit} ( '.' digit {digit} [('E'|'e') ['+'|'-'] digit {digit}] 
+                                      |                    ('E'|'e') ['+'|'-'] digit {digit}).
+  string              = '"'{char}'"' | "'"{char}"'".
+
+  decl				  = ':'
+
+COMMENTS FROM "/*" TO "*/" NESTED
+COMMENTS FROM "//" TO cr lf
+
+IGNORE cr + lf + tab
+
+
+/*------------------------------------------------------------------------*/
+PRODUCTIONS
+
+Xalang								
+= "module" Ident<code.name>			
+  {									(. wchar_t* name; .)
+    "import" Ident<name> 			(. wprintf(L"Import: %s\n", name); .)
+  }
+  { 
+	Expression 
+  }
+.
+
+Expression					(. wchar_t* name; .)
+= Ident<name>				(. wprintf(L"Expression: %s\n", name); .)
+  [ Declaration
+  | Transformation
+  | Evaluation
+  ]
+.
+
+/*-----*/
+
+Declaration
+= decl Element
+.
+
+Transformation
+= '[' Parameters ']'  // input
+  '{' { 
+	Expression 
+   } '}'  // output + logic
+.
+
+Evaluation
+=
+
+.
+
+/*-----*/
+
+Element						(. wchar_t* name; .)
+= ( Ident<name>
+  | integer
+  | real
+  | string
+  | "true"
+  | "false"
+  )
+.
+
+Ident<wchar_t* &name>
+= ident                  (. name = coco_string_create(t->val); .)
+  [".."]
+.
+
+Parameters				(. wchar_t* name; .)
+= [ Ident<name> 
+	{ ',' Ident<name>
+	}
+  ]
+.
+
+/*------------------------------------------------------------------------*/
+END Xalang.
