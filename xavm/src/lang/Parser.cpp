@@ -5,7 +5,7 @@
 #include "Scanner.h"
 
 
-namespace xalang {
+namespace xalang_parser {
 
 
 void Parser::SynErr(int n) {
@@ -62,102 +62,155 @@ bool Parser::WeakSeparator(int n, int syFol, int repFol) {
 	}
 }
 
-void Parser::Xalang() {
-		Expect(5 /* "module" */);
-		Ident(code.name);
-		while (la->kind == 6 /* "import" */) {
-			wchar_t* name; 
+void Parser::symbol(Symbol& t) {
+		t = {}; Ident id; 
+		ident(id);
+		t.push_back(id); 
+		while (la->kind == _t_comp) {
 			Get();
-			Ident(name);
-			wprintf(L"Import: %s\n", name); 
-		}
-		while (la->kind == _ident) {
-			Expression();
+			ident(id);
+			t.push_back(id); 
 		}
 }
 
-void Parser::Ident(wchar_t* &name) {
-		Expect(_ident);
-		name = coco_string_create(t->val); 
-		if (la->kind == 14 /* ".." */) {
-			Get();
-		}
+void Parser::ident(Ident &t) {
+		Expect(_t_ident);
+		t.name = tokenText();
+		t.isPrivate = (t.name[0] == _t_priv);
+		t.isConstant = (t.isPrivate ? 
+		iswupper(t.name[1]) : 
+		iswupper(t.name[0]));   
+		
 }
 
-void Parser::Expression() {
-		wchar_t* name; 
-		Ident(name);
-		wprintf(L"Expression: %s\n", name); 
-		if (la->kind == 7 /* ":" */ || la->kind == 8 /* "[" */) {
-			if (la->kind == 7 /* ":" */) {
-				Declaration();
-			} else if (la->kind == 8 /* "[" */) {
-				Transformation();
-			} else {
-				Evaluation();
-			}
-		}
-}
-
-void Parser::Declaration() {
-		Expect(7 /* ":" */);
-		Element();
-}
-
-void Parser::Transformation() {
-		Expect(8 /* "[" */);
-		Parameters();
-		Expect(9 /* "]" */);
-		Expect(10 /* "{" */);
-		while (la->kind == _ident) {
-			Expression();
-		}
-		Expect(11 /* "}" */);
-}
-
-void Parser::Evaluation() {
-}
-
-void Parser::Element() {
-		wchar_t* name; 
-		switch (la->kind) {
-		case _ident: {
-			Ident(name);
-			break;
-		}
-		case _integer: {
+void Parser::layout(Layout& l) {
+		cell(l);
+		while (la->kind == _t_sep) {
 			Get();
-			break;
-		}
-		case _real: {
-			Get();
-			break;
-		}
-		case _string: {
-			Get();
-			break;
-		}
-		case 12 /* "true" */: {
-			Get();
-			break;
-		}
-		case 13 /* "false" */: {
-			Get();
-			break;
-		}
-		default: SynErr(17); break;
-		}
-}
-
-void Parser::Parameters() {
-		wchar_t* name; 
-		if (la->kind == _ident) {
-			Ident(name);
-			while (la->kind == 15 /* "," */) {
+			while (la->kind == _t_eol) {
 				Get();
-				Ident(name);
+			}
+			cell(l);
+		}
+}
+
+void Parser::cell(Layout& l) {
+		if (StartOf(1)) {
+			Cell c; 
+			if (StartOf(2)) {
+				value(c.val);
+				c.type = Cell::Value; 
+			} else {
+				symbol(c.sym);
+				c.type = Cell::Symbol; 
+			}
+			l.push_back(c); 
+		} else if (la->kind == _t_par_start) {
+			Get();
+			while (la->kind == _t_eol) {
+				Get();
+			}
+			layout(l);
+			while (la->kind == _t_eol) {
+				Get();
+			}
+			Expect(_t_par_end);
+		} else SynErr(19);
+}
+
+void Parser::value(Value &val) {
+		val = {}; 
+		switch (la->kind) {
+		case _t_integer: {
+			Get();
+			val.type = Value::Integer; 
+			break;
+		}
+		case _t_real: {
+			Get();
+			val.type = Value::Real; 
+			break;
+		}
+		case _t_string: {
+			Get();
+			val.type = Value::String; 
+			break;
+		}
+		case _t_true: {
+			Get();
+			val.type = Value::Boolean; 
+			break;
+		}
+		case _t_false: {
+			Get();
+			val.type = Value::Boolean; 
+			break;
+		}
+		case _t_null: {
+			Get();
+			val.type = Value::Null; 
+			break;
+		}
+		default: SynErr(20); break;
+		}
+		val.text = tokenText(); 
+}
+
+void Parser::Xalang() {
+		Expect(_t_module);
+		symbol(root.name);
+		block(root.scope);
+}
+
+void Parser::block(Scope &s) {
+		while (la->kind == _t_eol || la->kind == _t_ident || la->kind == _t_par_start) {
+			while (la->kind == _t_eol) {
+				Get();
+			}
+			expression(s);
+			Expect(_t_eol);
+			while (la->kind == _t_eol) {
+				Get();
 			}
 		}
+}
+
+void Parser::expression(Scope &s) {
+		if (la->kind == _t_ident) {
+			Expr e; 
+			if (IsDecl()) {
+				declaration(e.decl);
+				e.type = Expr::Declaration; 
+			} else {
+				evaluation(e.eval);
+				e.type = Expr::Evaluation; 
+			}
+			s.push_back(e); 
+		} else if (la->kind == _t_par_start) {
+			Get();
+			while (la->kind == _t_eol) {
+				Get();
+			}
+			expression(s);
+			while (la->kind == _t_eol) {
+				Get();
+			}
+			Expect(_t_par_end);
+		} else SynErr(21);
+}
+
+void Parser::declaration(Declaration& d) {
+		symbol(d.sym);
+		Expect(_t_decl);
+		while (la->kind == _t_eol) {
+			Get();
+		}
+		layout(d.layout);
+}
+
+void Parser::evaluation(Evaluation& e) {
+		symbol(e.sym);
+		layout(e.layout);
 }
 
 
@@ -261,7 +314,7 @@ void Parser::Parse() {
 }
 
 Parser::Parser(Scanner *scanner) {
-	maxT = 16;
+	maxT = 18;
 
 	ParserInitCaller<Parser>::CallInit(this);
 	dummyToken = NULL;
@@ -276,8 +329,10 @@ bool Parser::StartOf(int s) {
 	const bool T = true;
 	const bool x = false;
 
-	static bool set[1][18] = {
-		{T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x}
+	static bool set[3][20] = {
+		{T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x},
+		{x,x,T,T, T,T,x,x, x,x,x,x, x,x,x,T, T,T,x,x},
+		{x,x,x,T, T,T,x,x, x,x,x,x, x,x,x,T, T,T,x,x}
 	};
 
 
@@ -299,23 +354,27 @@ void Errors::SynErr(int line, int col, int n) {
 	wchar_t* s;
 	switch (n) {
 			case 0: s = coco_string_create(L"EOF expected"); break;
-			case 1: s = coco_string_create(L"ident expected"); break;
-			case 2: s = coco_string_create(L"integer expected"); break;
-			case 3: s = coco_string_create(L"real expected"); break;
-			case 4: s = coco_string_create(L"string expected"); break;
-			case 5: s = coco_string_create(L"\"module\" expected"); break;
-			case 6: s = coco_string_create(L"\"import\" expected"); break;
-			case 7: s = coco_string_create(L"\":\" expected"); break;
-			case 8: s = coco_string_create(L"\"[\" expected"); break;
-			case 9: s = coco_string_create(L"\"]\" expected"); break;
-			case 10: s = coco_string_create(L"\"{\" expected"); break;
-			case 11: s = coco_string_create(L"\"}\" expected"); break;
-			case 12: s = coco_string_create(L"\"true\" expected"); break;
-			case 13: s = coco_string_create(L"\"false\" expected"); break;
-			case 14: s = coco_string_create(L"\"..\" expected"); break;
-			case 15: s = coco_string_create(L"\",\" expected"); break;
-			case 16: s = coco_string_create(L"??? expected"); break;
-			case 17: s = coco_string_create(L"invalid Element"); break;
+			case 1: s = coco_string_create(L"t_eol expected"); break;
+			case 2: s = coco_string_create(L"t_ident expected"); break;
+			case 3: s = coco_string_create(L"t_integer expected"); break;
+			case 4: s = coco_string_create(L"t_real expected"); break;
+			case 5: s = coco_string_create(L"t_string expected"); break;
+			case 6: s = coco_string_create(L"t_priv expected"); break;
+			case 7: s = coco_string_create(L"t_comp expected"); break;
+			case 8: s = coco_string_create(L"t_sep expected"); break;
+			case 9: s = coco_string_create(L"t_decl expected"); break;
+			case 10: s = coco_string_create(L"t_params_start expected"); break;
+			case 11: s = coco_string_create(L"t_params_end expected"); break;
+			case 12: s = coco_string_create(L"t_par_start expected"); break;
+			case 13: s = coco_string_create(L"t_par_end expected"); break;
+			case 14: s = coco_string_create(L"t_module expected"); break;
+			case 15: s = coco_string_create(L"t_true expected"); break;
+			case 16: s = coco_string_create(L"t_false expected"); break;
+			case 17: s = coco_string_create(L"t_null expected"); break;
+			case 18: s = coco_string_create(L"??? expected"); break;
+			case 19: s = coco_string_create(L"invalid cell"); break;
+			case 20: s = coco_string_create(L"invalid value"); break;
+			case 21: s = coco_string_create(L"invalid expression"); break;
 
 		default:
 		{

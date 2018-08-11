@@ -159,16 +159,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\lang\Code.cpp" />
     <ClCompile Include="src\lang\Parser.cpp" />
     <ClCompile Include="src\lang\Scanner.cpp" />
     <ClCompile Include="src\libs.cc" />
     <ClCompile Include="src\xavm.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\xalang\xalang.vcxproj">
-      <Project>{57143842-3640-438e-a748-d690f62e7946}</Project>
-      <Private>false</Private>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\lang\Code.h" />

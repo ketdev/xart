@@ -1,7 +1,7 @@
 
 
-#if !defined(xalang_COCO_PARSER_H__)
-#define xalang_COCO_PARSER_H__
+#if !defined(xalang_parser_COCO_PARSER_H__)
+#define xalang_parser_COCO_PARSER_H__
 
 #include <wchar.h>
 #include <string>
@@ -11,11 +11,12 @@
 using namespace std;
 
 #include "Code.h"
+using namespace xalang;
 
 
 #include "Scanner.h"
 
-namespace xalang {
+namespace xalang_parser {
 
 
 class Errors {
@@ -35,10 +36,23 @@ class Parser {
 private:
 	enum {
 		_EOF=0,
-		_ident=1,
-		_integer=2,
-		_real=3,
-		_string=4
+		_t_eol=1,
+		_t_ident=2,
+		_t_integer=3,
+		_t_real=4,
+		_t_string=5,
+		_t_priv=6,
+		_t_comp=7,
+		_t_sep=8,
+		_t_decl=9,
+		_t_params_start=10,
+		_t_params_end=11,
+		_t_par_start=12,
+		_t_par_end=13,
+		_t_module=14,
+		_t_true=15,
+		_t_false=16,
+		_t_null=17
 	};
 	int maxT;
 
@@ -61,19 +75,38 @@ public:
 	Token *la;			// lookahead token
 
 static inline std::wstring s2ws(const std::string& str) {
-        using convert_typeX = std::codecvt_utf8<wchar_t>;
-        std::wstring_convert<convert_typeX, wchar_t> converterX;
-        return converterX.from_bytes(str);
-    }
-    static inline std::string ws2s(const std::wstring& wstr) {
-        using convert_typeX = std::codecvt_utf8<wchar_t>;
-        std::wstring_convert<convert_typeX, wchar_t> converterX;
-        return converterX.to_bytes(wstr);
-    }
+		using convert_typeX = std::codecvt_utf8<wchar_t>;
+		std::wstring_convert<convert_typeX, wchar_t> converterX;
+		return converterX.from_bytes(str);
+	}
+	static inline std::string ws2s(const std::wstring& wstr) {
+		using convert_typeX = std::codecvt_utf8<wchar_t>;
+		std::wstring_convert<convert_typeX, wchar_t> converterX;
+		return converterX.to_bytes(wstr);
+	}
+
+	wstring tokenText(){
+		return coco_string_create(t->val);
+	}
+
+	bool IsDecl() {
+		scanner->ResetPeek();
+		Token* next = scanner->Peek();
+		while(next->kind == _t_ident || next->kind == _t_comp)
+			next = scanner->Peek();
+		return la->kind == _t_ident && next->kind == _t_decl;
+	} 
+	bool IsFunc() {
+		scanner->ResetPeek();
+		Token *next = scanner->Peek();
+		while(next->kind == _t_ident || next->kind == _t_comp)
+			next = scanner->Peek();
+		return la->kind == _t_ident && next->kind == _t_params_start;
+	} 
 
 	// Code generation
 
-	Module code;
+	Module root;
 
 
 /*--------------------------------------------------------------------------*/
@@ -83,14 +116,16 @@ static inline std::wstring s2ws(const std::string& str) {
 	~Parser();
 	void SemErr(const wchar_t* msg);
 
+	void symbol(Symbol& t);
+	void ident(Ident &t);
+	void layout(Layout& l);
+	void cell(Layout& l);
+	void value(Value &val);
 	void Xalang();
-	void Ident(wchar_t* &name);
-	void Expression();
-	void Declaration();
-	void Transformation();
-	void Evaluation();
-	void Element();
-	void Parameters();
+	void block(Scope &s);
+	void expression(Scope &s);
+	void declaration(Declaration& d);
+	void evaluation(Evaluation& e);
 
 	void Parse();
 

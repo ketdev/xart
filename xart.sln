@@ -4,10 +4,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 15.0.27130.2027
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "xavm", "xavm\xavm.vcxproj", "{2CC45676-AA25-4E33-8936-6F49F1BB3164}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "generate", "xalang\xalang.vcxproj", "{57143842-3640-438E-A748-D690F62E7946}"
+	ProjectSection(ProjectDependencies) = postProject
+		{57143842-3640-438E-A748-D690F62E7946} = {57143842-3640-438E-A748-D690F62E7946}
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "(xalang)", "(xalang)", "{27843049-6BF0-45E2-BBAD-4F014BE9E959}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "generate", "xalang\gen.vcxproj", "{57143842-3640-438E-A748-D690F62E7946}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -1,7 +1,7 @@
 
 
-#if !defined(xalang_COCO_SCANNER_H__)
-#define xalang_COCO_SCANNER_H__
+#if !defined(xalang_parser_COCO_SCANNER_H__)
+#define xalang_parser_COCO_SCANNER_H__
 
 #include <limits.h>
 #include <stdio.h>
@@ -32,7 +32,7 @@
 #define COCO_HEAP_BLOCK_SIZE (64*1024)
 #define COCO_CPP_NAMESPACE_SEPARATOR L':'
 
-namespace xalang {
+namespace xalang_parser {
 
 
 // string handling, wide character
@@ -241,6 +241,7 @@ private:
 	void AddCh();
 	bool Comment0();
 	bool Comment1();
+	bool Comment2();
 
 	Token* NextToken();
 

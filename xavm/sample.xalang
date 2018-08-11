@@ -1,12 +1,55 @@
 module sample
 
 // import os
+// import io
 // import math
 
-// Declarations
-Green	: 0xF
-Blue	: 2.0
-Red		: 3
+
+# -- DATA VALUES --
+
+# Define some data entities
+myColor: "blue"
+
+# Data is a tuple
+# start with uppercase for constant values
+math.Coordinate: (2,3),int
+
+# Data can also hold types
+myTypes: 
+	int, 
+	int, 
+	foo 
+(a:'a') # the parenthesis is used as next line :o !!!
+
+
+# -- CODE --
+
+
+io.print ('hello world!') 
+
+# parenthesis are optional, used only for operation order
+((	io.print 'cool!' ))
+
+
+
+/*
+
+
+# --
+
+# Define a transformation function
+# applies to any data with matching components (in the same module?)
+program [] {
+	# ...
+}
+
+
+# Define custom type component
+point { 
+	x : int
+	y : int
+}
+
 
 // : is eager, [] is lazy (parametrized)
 // F is constant, f is variable
@@ -63,3 +106,6 @@ KillEnemy [point, dead]{ # system
 // Handle - Layer of indirection betweent the entities and the user.
 //			Handles will be used to keep track and access an entity.
 //			It will be possible to check if the entity is still valid through an existing handle.
+
+
+*/

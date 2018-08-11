@@ -7,26 +7,46 @@
 using namespace std;
 
 #include "Code.h"
+using namespace xalang;
 
 /*--------------------------------------------------------------------------*/
 COMPILER Xalang
 
     // PARSER fields and methods
     
-    static inline std::wstring s2ws(const std::string& str) {
-        using convert_typeX = std::codecvt_utf8<wchar_t>;
-        std::wstring_convert<convert_typeX, wchar_t> converterX;
-        return converterX.from_bytes(str);
-    }
-    static inline std::string ws2s(const std::wstring& wstr) {
-        using convert_typeX = std::codecvt_utf8<wchar_t>;
-        std::wstring_convert<convert_typeX, wchar_t> converterX;
-        return converterX.to_bytes(wstr);
-    }
+	static inline std::wstring s2ws(const std::string& str) {
+		using convert_typeX = std::codecvt_utf8<wchar_t>;
+		std::wstring_convert<convert_typeX, wchar_t> converterX;
+		return converterX.from_bytes(str);
+	}
+	static inline std::string ws2s(const std::wstring& wstr) {
+		using convert_typeX = std::codecvt_utf8<wchar_t>;
+		std::wstring_convert<convert_typeX, wchar_t> converterX;
+		return converterX.to_bytes(wstr);
+	}
+
+	wstring tokenText(){
+		return coco_string_create(t->val);
+	}
+
+	bool IsDecl() {
+		scanner->ResetPeek();
+		Token* next = scanner->Peek();
+		while(next->kind == _t_ident || next->kind == _t_comp)
+			next = scanner->Peek();
+		return la->kind == _t_ident && next->kind == _t_decl;
+	} 
+	bool IsFunc() {
+		scanner->ResetPeek();
+		Token *next = scanner->Peek();
+		while(next->kind == _t_ident || next->kind == _t_comp)
+			next = scanner->Peek();
+		return la->kind == _t_ident && next->kind == _t_params_start;
+	} 
 
 	// Code generation
 
-	Module code;
+	Module root;
 
 
 /*--------------------------------------------------------------------------*/
@@ -42,86 +62,99 @@ CHARACTERS
 	hex                = digit + 'A' .. 'F' + 'a' .. 'f'.
 	oct                = '0' .. '7'.
 	bin                = '0' .. '1'.
-	char                = ANY - '"' - '"'.
+	char                = ANY - '"' - "'".
 
 TOKENS
 
-  ident               = letter { letter | digit | '_' }.
-  integer             = ['-'] digit {digit} | ("0x"|"0X") hex {hex} | ("0o"|"0O") oct {oct} | ("0b"|"0B") bin {bin}.
-  real                = ['-'] digit {digit} ( '.' digit {digit} [('E'|'e') ['+'|'-'] digit {digit}] 
-                                      |                    ('E'|'e') ['+'|'-'] digit {digit}).
-  string              = '"'{char}'"' | "'"{char}"'".
+	t_eol				= cr | lf.
+	t_ident				= ['_'] letter { letter | digit | '_' }.
+	t_integer           = ['-'] digit {digit} | ("0x"|"0X") hex {hex} | ("0o"|"0O") oct {oct} | ("0b"|"0B") bin {bin}.
+	t_real              = ['-'] digit {digit} ( '.' digit {digit} [('E'|'e') ['+'|'-'] digit {digit}] 
+										      |                    ('E'|'e') ['+'|'-'] digit {digit}).
+	t_string            = '"'{char|"'"}'"' | "'"{char|'"'}"'".
 
-  decl				  = ':'
+	// special tokens
+	t_priv				= '_'.
+	t_comp				= '.'.
+	t_sep				= ','.
+	t_decl				= ':'.
+	t_params_start		= '['.
+	t_params_end   		= ']'.
+	t_par_start			= '('.
+	t_par_end			= ')'.
+
+	// keywords
+	t_module			= "module".
+	t_true				= "True".
+	t_false				= "False".
+	t_null				= "Null".
 
 COMMENTS FROM "/*" TO "*/" NESTED
 COMMENTS FROM "//" TO cr lf
+COMMENTS FROM "#" TO cr lf
 
-IGNORE cr + lf + tab
+IGNORE ws + tab
 
 
 /*------------------------------------------------------------------------*/
 PRODUCTIONS
 
-Xalang								
-= "module" Ident<code.name>			
-  {									(. wchar_t* name; .)
-    "import" Ident<name> 			(. wprintf(L"Import: %s\n", name); .)
-  }
-  { 
-	Expression 
-  }
-.
+// Basic Type parsing ---------------------------------------------------------
 
-Expression					(. wchar_t* name; .)
-= Ident<name>				(. wprintf(L"Expression: %s\n", name); .)
-  [ Declaration
-  | Transformation
-  | Evaluation
-  ]
-.
-
-/*-----*/
-
-Declaration
-= decl Element
-.
-
-Transformation
-= '[' Parameters ']'  // input
-  '{' { 
-	Expression 
-   } '}'  // output + logic
-.
-
-Evaluation
-=
-
-.
-
-/*-----*/
-
-Element						(. wchar_t* name; .)
-= ( Ident<name>
-  | integer
-  | real
-  | string
-  | "true"
-  | "false"
-  )
-.
-
-Ident<wchar_t* &name>
-= ident                  (. name = coco_string_create(t->val); .)
-  [".."]
-.
-
-Parameters				(. wchar_t* name; .)
-= [ Ident<name> 
-	{ ',' Ident<name>
+// components separated by '.'
+symbol<Symbol& t> =				(. t = {}; Ident id; .)
+	ident<id>					(. t.push_back(id); .)
+	{ t_comp ident<id>			(. t.push_back(id); .) 
 	}
-  ]
 .
+
+// '_' for private, capital for constant
+ident<Ident &t> = t_ident		(.  t.name = tokenText();
+									t.isPrivate = (t.name[0] == _t_priv);
+									t.isConstant = (t.isPrivate ? 
+										iswupper(t.name[1]) : 
+										iswupper(t.name[0]));   
+								.)
+.
+
+// values separated by ','
+// can have parenthesis for computation order, but is flattened
+layout<Layout& l> =	
+	cell<l> { t_sep {t_eol} cell<l> }
+.
+cell<Layout& l> =				(. Cell c; .)
+	( value<c.val>				(. c.type = Cell::Value; .)
+	| symbol<c.sym> 			(. c.type = Cell::Symbol; .)
+	)							(. l.push_back(c); .)
+	| t_par_start {t_eol} layout<l> {t_eol} t_par_end
+.
+value<Value &val> =				(. val = {}; .)
+	( t_integer					(. val.type = Value::Integer; .)
+	| t_real					(. val.type = Value::Real; .)
+	| t_string					(. val.type = Value::String; .)
+	| t_true					(. val.type = Value::Boolean; .)
+	| t_false					(. val.type = Value::Boolean; .)
+	| t_null					(. val.type = Value::Null; .)
+	)							(. val.text = tokenText(); .)
+.
+
+
+// Expressions - code data and transformations --------------------------------
+
+Xalang = t_module symbol<root.name> block<root.scope>.
+block<Scope &s> = { {t_eol} expression<s> t_eol {t_eol} }.
+expression<Scope &s> =				(. Expr e; .)
+	( IF(IsDecl()) 
+		declaration<e.decl>			(. e.type = Expr::Declaration; .)
+	// | IF(IsFunc())
+	| evaluation<e.eval>			(. e.type = Expr::Evaluation; .)
+	)								(. s.push_back(e); .)
+	| t_par_start {t_eol} expression<s> {t_eol} t_par_end
+.
+
+declaration<Declaration& d> = symbol<d.sym> t_decl {t_eol} layout<d.layout>.
+evaluation<Evaluation& e> = symbol<e.sym> layout<e.layout>.
+
 
 /*------------------------------------------------------------------------*/
 END Xalang.

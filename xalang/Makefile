@@ -2,7 +2,7 @@
 BINDIR = .\bin
 COCO := $(BINDIR)\coco.exe
 ATG := xalang.atg
-NAMESPACE := xalang
+NAMESPACE := xalang_parser
 OUTDIR := gen
 COPYDIR := ..\xavm\src\lang
 
