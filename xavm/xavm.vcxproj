@@ -159,7 +159,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\lang\Code.cpp" />
     <ClCompile Include="src\lang\Parser.cpp" />
     <ClCompile Include="src\lang\Scanner.cpp" />
     <ClCompile Include="src\libs.cc" />

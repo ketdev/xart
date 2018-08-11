@@ -35,20 +35,8 @@ namespace xalang {
 		} type;
 		string_t text;
 	};
-
-	// memory layout
-	struct Cell {
-		enum Type {
-			Value,
-			Symbol,
-		} type;
-		xalang::Value val;
-		xalang::Symbol sym;
-	};
-	using Layout = vector<Cell>;
 	
-
-
+	using Layout = vector<struct Expr>;
 
 	// declarations associate a symbol with code
 	struct Declaration {
@@ -64,17 +52,16 @@ namespace xalang {
 	
 	struct Expr {
 		enum Type {
-			Declaration,
-			Evaluation,
-
 			Value,
 			Symbol,
+			Declaration,
+			Evaluation,
 		} type;
+		xalang::Value val;
+		xalang::Symbol sym;
 		xalang::Declaration decl;
 		xalang::Evaluation eval;
 		
-		xalang::Value val;
-		xalang::Symbol sym;
 	};
 	using Scope = vector<Expr>;
 	

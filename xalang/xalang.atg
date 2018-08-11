@@ -29,14 +29,14 @@ COMPILER Xalang
 		return coco_string_create(t->val);
 	}
 
-	bool IsDecl() {
+	bool isDecl() {
 		scanner->ResetPeek();
 		Token* next = scanner->Peek();
 		while(next->kind == _t_ident || next->kind == _t_comp)
 			next = scanner->Peek();
 		return la->kind == _t_ident && next->kind == _t_decl;
 	} 
-	bool IsFunc() {
+	bool isFunc() {
 		scanner->ResetPeek();
 		Token *next = scanner->Peek();
 		while(next->kind == _t_ident || next->kind == _t_comp)
@@ -101,11 +101,14 @@ PRODUCTIONS
 
 // Basic Type parsing ---------------------------------------------------------
 
-// components separated by '.'
-symbol<Symbol& t> =				(. t = {}; Ident id; .)
-	ident<id>					(. t.push_back(id); .)
-	{ t_comp ident<id>			(. t.push_back(id); .) 
-	}
+value<Value &val> =				(. val = {}; .)
+	( t_integer					(. val.type = Value::Integer; .)
+	| t_real					(. val.type = Value::Real; .)
+	| t_string					(. val.type = Value::String; .)
+	| t_true					(. val.type = Value::Boolean; .)
+	| t_false					(. val.type = Value::Boolean; .)
+	| t_null					(. val.type = Value::Null; .)
+	)							(. val.text = tokenText(); .)
 .
 
 // '_' for private, capital for constant
@@ -117,43 +120,39 @@ ident<Ident &t> = t_ident		(.  t.name = tokenText();
 								.)
 .
 
-// values separated by ','
-// can have parenthesis for computation order, but is flattened
-layout<Layout& l> =	
-	cell<l> { t_sep {t_eol} cell<l> }
-.
-cell<Layout& l> =				(. Cell c; .)
-	( value<c.val>				(. c.type = Cell::Value; .)
-	| symbol<c.sym> 			(. c.type = Cell::Symbol; .)
-	)							(. l.push_back(c); .)
-	| t_par_start {t_eol} layout<l> {t_eol} t_par_end
-.
-value<Value &val> =				(. val = {}; .)
-	( t_integer					(. val.type = Value::Integer; .)
-	| t_real					(. val.type = Value::Real; .)
-	| t_string					(. val.type = Value::String; .)
-	| t_true					(. val.type = Value::Boolean; .)
-	| t_false					(. val.type = Value::Boolean; .)
-	| t_null					(. val.type = Value::Null; .)
-	)							(. val.text = tokenText(); .)
+// components separated by '.'
+symbol<Symbol& t> =				(. t = {}; Ident id; .)
+	ident<id>					(. t.push_back(id); .)
+	{ t_comp ident<id>			(. t.push_back(id); .) 
+	}
 .
 
 
 // Expressions - code data and transformations --------------------------------
 
 Xalang = t_module symbol<root.name> block<root.scope>.
-block<Scope &s> = { {t_eol} expression<s> t_eol {t_eol} }.
-expression<Scope &s> =				(. Expr e; .)
-	( IF(IsDecl()) 
-		declaration<e.decl>			(. e.type = Expr::Declaration; .)
-	// | IF(IsFunc())
-	| evaluation<e.eval>			(. e.type = Expr::Evaluation; .)
-	)								(. s.push_back(e); .)
-	| t_par_start {t_eol} expression<s> {t_eol} t_par_end
+
+block<Scope &s> = { {t_eol} list<s> t_eol {t_eol} }.
+
+// ',' separated items
+list<Scope &s> = 
+	( item<s> { t_sep {t_eol} item<s> }
+	| t_par_start block<s> t_par_end
+	)
 .
 
-declaration<Declaration& d> = symbol<d.sym> t_decl {t_eol} layout<d.layout>.
-evaluation<Evaluation& e> = symbol<e.sym> layout<e.layout>.
+item<Scope &s> =					(. Expr e; .)
+	( value<e.val>					(. e.type = Expr::Value; .)
+	| IF(isDecl()) 
+		declaration<e.decl>			(. e.type = Expr::Declaration; .)
+	| evaluation<e.eval>			(. e.type = Expr::Evaluation; .)
+	)								(. s.push_back(e); .)
+.
+
+declaration<Declaration& d> = symbol<d.sym> t_decl {t_eol} list<d.layout>.
+
+evaluation<Evaluation& e> = symbol<e.sym> list<e.layout>.
+
 
 
 /*------------------------------------------------------------------------*/

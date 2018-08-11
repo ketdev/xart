@@ -89,14 +89,14 @@ static inline std::wstring s2ws(const std::string& str) {
 		return coco_string_create(t->val);
 	}
 
-	bool IsDecl() {
+	bool isDecl() {
 		scanner->ResetPeek();
 		Token* next = scanner->Peek();
 		while(next->kind == _t_ident || next->kind == _t_comp)
 			next = scanner->Peek();
 		return la->kind == _t_ident && next->kind == _t_decl;
 	} 
-	bool IsFunc() {
+	bool isFunc() {
 		scanner->ResetPeek();
 		Token *next = scanner->Peek();
 		while(next->kind == _t_ident || next->kind == _t_comp)
@@ -116,14 +116,13 @@ static inline std::wstring s2ws(const std::string& str) {
 	~Parser();
 	void SemErr(const wchar_t* msg);
 
-	void symbol(Symbol& t);
-	void ident(Ident &t);
-	void layout(Layout& l);
-	void cell(Layout& l);
 	void value(Value &val);
+	void ident(Ident &t);
+	void symbol(Symbol& t);
 	void Xalang();
 	void block(Scope &s);
-	void expression(Scope &s);
+	void list(Scope &s);
+	void item(Scope &s);
 	void declaration(Declaration& d);
 	void evaluation(Evaluation& e);
 

@@ -5,7 +5,6 @@
     <ClCompile Include="src\xavm.cpp" />
     <ClCompile Include="src\lang\Parser.cpp" />
     <ClCompile Include="src\lang\Scanner.cpp" />
-    <ClCompile Include="src\lang\Code.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="xalang">
