@@ -5,50 +5,73 @@ module sample
 // import math
 
 
-# -- DATA VALUES --
+// Order of tokens:
+//	'(' ')'		- parenthesis
+//	'\n'		- list hard break
+//	':'			- declaration
+//	',' 		- list soft break
+//	' '			- evaluation
+//	'.'			- subcomponent
+//	'#'			- index
 
-# Define some data entities
+// rules:
+// #1 - no declaration within declaration list without parenthesis
+
+// equivalents:
+//	':(...)' == '{...}'
+
+
+// -- DATA VALUES --
+
+// Define some data entities
 myColor: "blue"
 
-# Data is a tuple
-# start with uppercase for constant values
-math.Coordinate: ((2,3),int)
+// Data is a tuple
+// start with uppercase for constant values
+math.Coordinate: 2,3
 
-# Data can also hold types
-myTypes: 
-	int, 
-	int, 
-	foo (a:'a') # the parenthesis is used as next line :o !!!
+// Data can also hold types
+myTypes: int, int
+
+// Held types can have aliases
+//point: x:int, y:int	// rule #1 -> (point: <error>) (x:int), (y:int)
+//point: (x:int, y:int) // rule #1 -> point: ((x:int), (y:int))
+
+// lookahead for declarations
+//a: 1, 3, b: 2	// apply rule #1, 'b' decl cannot be within 'a' decl
+(a: 1, 3), (b: 2)
+
+// Can be accessed by name or index
+point.x
+//point.#i.run test
 
 
-# -- CODE --
+// -- CODE --
 
 
 io.print ('hello world!') 
 
 # parenthesis are optional, used solely for operation order, so this is ok!
-((	io.print 'cool!' ))
+(io.print 'cool!')
 
 
 
 /*
 
 
-# --
+// --
 
-# Define a transformation function
-# applies to any data with matching components (in the same module?)
+// Define a transformation function
+// applies to any data with matching components (in the same module?)
 program [] {
-	# ...
+	// ...
 }
 
-
-# Define custom type component
-point { 
-	x : int
-	y : int
+// Define custom type component
+point {
+	x:int 
+	y:int
 }
-
 
 // : is eager, [] is lazy (parametrized)
 // F is constant, f is variable
@@ -80,16 +103,16 @@ Entry [args..] {
 
 // Component - simple, logic-less data-containing struct
 // Tag - simple logic-less and data-less truct
-point { # component
+point { // component
 	x : int
 	y : int
 }
-dead {} # tag
+dead {} // tag
 
 // Signature - compiletime mixed list of required components and tags
 -> in language, part of system signature
 
-KillEnemy [point, dead]{ # system
+KillEnemy [point, dead]{ // system
 	...
 }
 

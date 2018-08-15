@@ -151,8 +151,8 @@ void Parser::list(Scope &s) {
 }
 
 void Parser::item(Scope &s) {
+		Expr e; 
 		if (StartOf(2)) {
-			Expr e; 
 			if (StartOf(3)) {
 				value(e.val);
 				e.type = Expr::Value; 
@@ -177,7 +177,7 @@ void Parser::declaration(Declaration& d) {
 		while (la->kind == _t_eol) {
 			Get();
 		}
-		list(d.layout);
+		layout(d.layout);
 }
 
 void Parser::evaluation(Evaluation& e) {
@@ -185,6 +185,35 @@ void Parser::evaluation(Evaluation& e) {
 		if (StartOf(4)) {
 			list(e.layout);
 		}
+}
+
+void Parser::layout(Scope& s) {
+		elem(s);
+		while (la->kind == _t_sep) {
+			Get();
+			while (la->kind == _t_eol) {
+				Get();
+			}
+			elem(s);
+		}
+}
+
+void Parser::elem(Scope& s) {
+		Expr e; 
+		if (StartOf(2)) {
+			if (StartOf(3)) {
+				value(e.val);
+				e.type = Expr::Value; 
+			} else {
+				evaluation(e.eval);
+				e.type = Expr::Evaluation; 
+			}
+			s.push_back(e); 
+		} else if (la->kind == _t_par_start) {
+			Get();
+			block(s);
+			Expect(_t_par_end);
+		} else SynErr(21);
 }
 
 
@@ -350,6 +379,7 @@ void Errors::SynErr(int line, int col, int n) {
 			case 18: s = coco_string_create(L"??? expected"); break;
 			case 19: s = coco_string_create(L"invalid value"); break;
 			case 20: s = coco_string_create(L"invalid item"); break;
+			case 21: s = coco_string_create(L"invalid elem"); break;
 
 		default:
 		{

@@ -91,7 +91,6 @@ TOKENS
 
 COMMENTS FROM "/*" TO "*/" NESTED
 COMMENTS FROM "//" TO cr lf
-COMMENTS FROM "#" TO cr lf
 
 IGNORE cr + ws + tab
 
@@ -140,23 +139,37 @@ list<Scope &s> =
 	item<s> { t_sep {t_eol} item<s> }		// a,b,c
 .
 
-item<Scope &s> =					(. Expr e; .)
-	( value<e.val>					(. e.type = Expr::Value; .)
-	| IF(isDecl()) 
-		declaration<e.decl>			(. e.type = Expr::Declaration; .)
-	| evaluation<e.eval>			(. e.type = Expr::Evaluation; .)	
-	)								(. s.push_back(e); .)
+item<Scope &s> =						(. Expr e; .)
+	((	  value<e.val>						(. e.type = Expr::Value; .)
+		| IF(isDecl()) 
+			declaration<e.decl>				(. e.type = Expr::Declaration; .)
+		| evaluation<e.eval>				(. e.type = Expr::Evaluation; .)	
+		)									(. s.push_back(e); .)
 	| t_par_start block<s> t_par_end
+	)
 .
 
 declaration<Declaration& d> = 
-	symbol<d.sym> t_decl {t_eol} list<d.layout>		// a: b,c
+	symbol<d.sym> t_decl {t_eol} layout<d.layout>		// a: b,c
 .
 
 evaluation<Evaluation& e> = 
 	symbol<e.sym> [ list<e.layout> ]	// a (b,c)
 .
 
+
+// layout doesn't allow natural declarations
+layout<Scope& s> =
+	elem<s> { t_sep {t_eol} elem<s> }
+.
+
+elem<Scope& s>  =						(. Expr e; .)
+	((	  value<e.val>						(. e.type = Expr::Value; .)
+		| evaluation<e.eval>				(. e.type = Expr::Evaluation; .)	
+		)									(. s.push_back(e); .)
+	| t_par_start block<s> t_par_end
+	)
+.
 
 
 /*------------------------------------------------------------------------*/

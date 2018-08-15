@@ -125,6 +125,8 @@ static inline std::wstring s2ws(const std::string& str) {
 	void item(Scope &s);
 	void declaration(Declaration& d);
 	void evaluation(Evaluation& e);
+	void layout(Scope& s);
+	void elem(Scope& s);
 
 	void Parse();
 
