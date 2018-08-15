@@ -133,7 +133,6 @@ void Parser::block(Scope &s) {
 				Get();
 			}
 			list(s);
-			Expect(_t_eol);
 			while (la->kind == _t_eol) {
 				Get();
 			}
@@ -141,35 +140,35 @@ void Parser::block(Scope &s) {
 }
 
 void Parser::list(Scope &s) {
-		if (StartOf(2)) {
-			item(s);
-			while (la->kind == _t_sep) {
+		item(s);
+		while (la->kind == _t_sep) {
+			Get();
+			while (la->kind == _t_eol) {
 				Get();
-				while (la->kind == _t_eol) {
-					Get();
-				}
-				item(s);
 			}
+			item(s);
+		}
+}
+
+void Parser::item(Scope &s) {
+		if (StartOf(2)) {
+			Expr e; 
+			if (StartOf(3)) {
+				value(e.val);
+				e.type = Expr::Value; 
+			} else if (isDecl()) {
+				declaration(e.decl);
+				e.type = Expr::Declaration; 
+			} else {
+				evaluation(e.eval);
+				e.type = Expr::Evaluation; 
+			}
+			s.push_back(e); 
 		} else if (la->kind == _t_par_start) {
 			Get();
 			block(s);
 			Expect(_t_par_end);
 		} else SynErr(20);
-}
-
-void Parser::item(Scope &s) {
-		Expr e; 
-		if (StartOf(3)) {
-			value(e.val);
-			e.type = Expr::Value; 
-		} else if (isDecl()) {
-			declaration(e.decl);
-			e.type = Expr::Declaration; 
-		} else if (la->kind == _t_ident) {
-			evaluation(e.eval);
-			e.type = Expr::Evaluation; 
-		} else SynErr(21);
-		s.push_back(e); 
 }
 
 void Parser::declaration(Declaration& d) {
@@ -183,7 +182,9 @@ void Parser::declaration(Declaration& d) {
 
 void Parser::evaluation(Evaluation& e) {
 		symbol(e.sym);
-		list(e.layout);
+		if (StartOf(4)) {
+			list(e.layout);
+		}
 }
 
 
@@ -302,11 +303,12 @@ bool Parser::StartOf(int s) {
 	const bool T = true;
 	const bool x = false;
 
-	static bool set[4][20] = {
+	static bool set[5][20] = {
 		{T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x},
 		{x,T,T,T, T,T,x,x, x,x,x,x, T,x,x,T, T,T,x,x},
 		{x,x,T,T, T,T,x,x, x,x,x,x, x,x,x,T, T,T,x,x},
-		{x,x,x,T, T,T,x,x, x,x,x,x, x,x,x,T, T,T,x,x}
+		{x,x,x,T, T,T,x,x, x,x,x,x, x,x,x,T, T,T,x,x},
+		{x,x,T,T, T,T,x,x, x,x,x,x, T,x,x,T, T,T,x,x}
 	};
 
 
@@ -347,8 +349,7 @@ void Errors::SynErr(int line, int col, int n) {
 			case 17: s = coco_string_create(L"t_null expected"); break;
 			case 18: s = coco_string_create(L"??? expected"); break;
 			case 19: s = coco_string_create(L"invalid value"); break;
-			case 20: s = coco_string_create(L"invalid list"); break;
-			case 21: s = coco_string_create(L"invalid item"); break;
+			case 20: s = coco_string_create(L"invalid item"); break;
 
 		default:
 		{

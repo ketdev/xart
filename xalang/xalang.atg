@@ -66,7 +66,7 @@ CHARACTERS
 
 TOKENS
 
-	t_eol				= cr | lf.
+	t_eol				= lf.
 	t_ident				= ['_'] letter { letter | digit | '_' }.
 	t_integer           = ['-'] digit {digit} | ("0x"|"0X") hex {hex} | ("0o"|"0O") oct {oct} | ("0b"|"0B") bin {bin}.
 	t_real              = ['-'] digit {digit} ( '.' digit {digit} [('E'|'e') ['+'|'-'] digit {digit}] 
@@ -93,7 +93,7 @@ COMMENTS FROM "/*" TO "*/" NESTED
 COMMENTS FROM "//" TO cr lf
 COMMENTS FROM "#" TO cr lf
 
-IGNORE ws + tab
+IGNORE cr + ws + tab
 
 
 /*------------------------------------------------------------------------*/
@@ -132,26 +132,30 @@ symbol<Symbol& t> =				(. t = {}; Ident id; .)
 
 Xalang = t_module symbol<root.name> block<root.scope>.
 
-block<Scope &s> = { {t_eol} list<s> t_eol {t_eol} }.
+// newline separated lists
+block<Scope &s> = { {t_eol} list<s> {t_eol} }.
 
 // ',' separated items
 list<Scope &s> = 
-	( item<s> { t_sep {t_eol} item<s> }
-	| t_par_start block<s> t_par_end
-	)
+	item<s> { t_sep {t_eol} item<s> }		// a,b,c
 .
 
 item<Scope &s> =					(. Expr e; .)
 	( value<e.val>					(. e.type = Expr::Value; .)
 	| IF(isDecl()) 
 		declaration<e.decl>			(. e.type = Expr::Declaration; .)
-	| evaluation<e.eval>			(. e.type = Expr::Evaluation; .)
+	| evaluation<e.eval>			(. e.type = Expr::Evaluation; .)	
 	)								(. s.push_back(e); .)
+	| t_par_start block<s> t_par_end
 .
 
-declaration<Declaration& d> = symbol<d.sym> t_decl {t_eol} list<d.layout>.
+declaration<Declaration& d> = 
+	symbol<d.sym> t_decl {t_eol} list<d.layout>		// a: b,c
+.
 
-evaluation<Evaluation& e> = symbol<e.sym> list<e.layout>.
+evaluation<Evaluation& e> = 
+	symbol<e.sym> [ list<e.layout> ]	// a (b,c)
+.
 
 
 

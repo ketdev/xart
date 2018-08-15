@@ -426,7 +426,6 @@ void Scanner::Init() {
 	noSym = 18;
 	int i;
 	for (i = 10; i <= 10; ++i) start.set(i, 1);
-	for (i = 13; i <= 13; ++i) start.set(i, 1);
 	for (i = 65; i <= 90; ++i) start.set(i, 2);
 	for (i = 97; i <= 122; ++i) start.set(i, 2);
 	for (i = 49; i <= 57; ++i) start.set(i, 27);
@@ -627,7 +626,7 @@ void Scanner::AppendVal(Token *t) {
 
 Token* Scanner::NextToken() {
 	while (ch == ' ' ||
-			ch == 9 || (ch >= 11 && ch <= 12) || ch == L' '
+			ch == 9 || (ch >= 11 && ch <= 13) || ch == L' '
 	) NextCh();
 	if ((ch == L'#' && Comment0()) || (ch == L'/' && Comment1()) || (ch == L'/' && Comment2())) return NextToken();
 	int recKind = noSym;

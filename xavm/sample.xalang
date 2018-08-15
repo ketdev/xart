@@ -12,14 +12,13 @@ myColor: "blue"
 
 # Data is a tuple
 # start with uppercase for constant values
-math.Coordinate: (2,3),int
+math.Coordinate: ((2,3),int)
 
 # Data can also hold types
 myTypes: 
 	int, 
 	int, 
-	foo 
-(a:'a') # the parenthesis is used as next line :o !!!
+	foo (a:'a') # the parenthesis is used as next line :o !!!
 
 
 # -- CODE --
@@ -27,7 +26,7 @@ myTypes:
 
 io.print ('hello world!') 
 
-# parenthesis are optional, used only for operation order
+# parenthesis are optional, used solely for operation order, so this is ok!
 ((	io.print 'cool!' ))
 
 
